@@ -11,10 +11,10 @@ import 'package:quiver/async.dart';
 /**
  * Compile protobuffers in the directory [:templateRoot:] to the directory [:protobufOut:].
  *
- * A manifest file for the generated files is written to [:exportLib:].
+ * A manifest file for the generated files is written to [:manifestLib:].
  * [:args:] are the arguments passed to the `build.dart` script in the project directory.
  */
-Future build(String templateRoot, String protobufOut, String exportLib, List<String> args) {
+Future build(String templateRoot, String protobufOut, String manifestLib, List<String> args) {
   Directory out = new Directory(protobufOut);
   Directory root = new Directory(templateRoot);
 
@@ -33,7 +33,7 @@ Future build(String templateRoot, String protobufOut, String exportLib, List<Str
   }
 
   return configureClean.then((_) {
-    _Builder builder = new _Builder(root, out, exportLib, buildArgs.changed, buildArgs.removed);
+    _Builder builder = new _Builder(root, out, manifestLib, buildArgs.changed, buildArgs.removed);
     return builder.run();
   });
 }
