@@ -1,0 +1,5 @@
+import "proto/service_type.proto";
+
+message ClientService {
+  required ServiceType serviceType = 1;
+}

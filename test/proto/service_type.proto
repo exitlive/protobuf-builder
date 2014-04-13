@@ -1,0 +1,6 @@
+
+
+enum ServiceType {
+  LOCAL = 1;
+  REMOTE = 2;
+}

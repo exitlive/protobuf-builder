@@ -1,0 +1,6 @@
+name: exitlive_proto_builder
+version: 0.1.0
+description: A web application
+dependencies:
+  protobuf: any
+  quiver: any
