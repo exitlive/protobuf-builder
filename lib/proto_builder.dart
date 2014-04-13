@@ -8,6 +8,10 @@ import 'dart:async';
 import 'package:quiver/async.dart';
 //import 'package:protobuf/protobuf.dart';
 
+
+final Pattern _REMOVED_PATTERN = new RegExp(r'--removed=(.*)$');
+final Pattern _CHANGED_PATTERN = new RegExp(r'--changed=(.*)$');
+
 /**
  * Compile protobuffers in the directory [:templateRoot:] to the directory [:protobufOut:].
  *
@@ -25,6 +29,7 @@ Future build(String templateRoot, String protobufOut, String manifestLib, List<S
     // If we have to build clean, then we want to remove, then add every template again
     configureClean = root.list(recursive: true)
         .where((entry) => entry is File)
+        .where((entry) => !entry.path.contains('/packages/'))
         .where((entry) => entry.path.endsWith('.proto'))
         .forEach((file){
           buildArgs.changed.add(file);
@@ -54,14 +59,14 @@ class _Builder {
   Future run() {
     print("Template root: ${root.path}");
     print("Protobuffer out: ${out.path}");
-    print("Removed files:");
-    for (var file in removed) {
-      print("\t${file.path} (out: ${outFile(file).path})");
-    }
-    return forEachAsync(removed, delete)
-        .then((_) => forEachAsync(changed, compile))
-        .then((_) => forEachAsync(changed, postCompile))
-        .then((_) => writeExportFile());
+
+    //TODO: quiver.async bug.
+    // forEachAsync doesn't complete if iterable is empty
+    return _forEachAsync(removed, delete)
+        .then((_) => _forEachAsync(changed, compile))
+        .then((_) => _forEachAsync(changed, postCompile))
+        .then((_) => writeExportFile())
+        .then((_) => print("Success"));
   }
 
   File compileFile(File template) =>
@@ -103,12 +108,21 @@ class _Builder {
   Future compile(File template) {
     print("Compiling: ${template.path}");
 
-    return out.exists().then((exists) {
-      if (!exists)
-        return out.create(recursive: true);
+    return _isProtocOnPath().then((onPath) {
+      if (!onPath)
+        throw new BuildError("protoc was not found on the users \$PATH");
+      return _isDartOnPath().then((onPath) {
+        if (!onPath)
+          throw new BuildError("dart was not found on the users \$PATH");
+      });
+    }).then((_) {
+      return out.exists().then((exists) {
+        if (!exists)
+          return out.create(recursive: true);
+      });
     }).then((_) {
       return Process.run('protoc',
-          [ '--plugin=protoc-gen-dart=${_dartProtocPlugin.absolute.path}',
+          [ '--plugin=protoc-gen-dart=${_dartProtocPlugin.path}',
             '--dart_out=${out.path}',
             template.path ]
           ).then((result) {
@@ -143,6 +157,7 @@ class _Builder {
     var exportFile = new File("${out.path}/${exportLib}.dart");
     return out.list(recursive: true)
         .where((entry) => entry is File)
+        .where((entry) => entry.path != exportFile.path)
         .toList().then((protobufFiles) => exportFile.writeAsString("""
 library $exportLib;
 
@@ -153,13 +168,11 @@ ${protobufFiles.map(toExportStatement).join("\n")}
 
 }
 
-final Pattern _REMOVED_PATTERN = new RegExp(r'--removed=(.*)$');
-final Pattern _CHANGED_PATTERN = new RegExp(r'--changed=(.*)$');
 
 class _BuildArgs {
   final Set<File> removed = new Set<File>();
   final Set<File> changed = new Set<File>();
-  bool clean;
+  bool clean = false;
 }
 
 _BuildArgs _parseArgs(List<String> args) {
@@ -180,23 +193,59 @@ _BuildArgs _parseArgs(List<String> args) {
       buildArgs.changed.add(new File(match.group(1)));
       continue;
     }
+    if (arg.startsWith('--machine'))
+      //TODO: machine error reporting
+      continue;
     throw new BuildError("Unrecognised argument in argument list: $arg");
   }
   return buildArgs;
 }
 
-const _PROTOC_ENVVAR = 'DART_PROTOC_PLUGIN';
 
 /**
  * The dart protoc plugin
  */
-File get _dartProtocPlugin {
-  if (Platform.environment[_PROTOC_ENVVAR] == null)
-    throw new BuildError("Could not find $_PROTOC_ENVVAR in environment");
-  var pluginFile = new File(Platform.environment[_PROTOC_ENVVAR]);
-  if (!pluginFile.existsSync())
-    throw new BuildError("Could not locate dart protoc plugin");
-  return pluginFile;
+final File _dartProtocPlugin = new File("packages/exitlive_protobuf_builder/protoc-dart-plugin");
+
+// quiver.async bug #125
+// forEachAsync doesn't complete if iterable is empty
+Future _forEachAsync(Iterable iterable, dynamic action(var value)) {
+  if (iterable.isNotEmpty)
+    return forEachAsync(iterable, action);
+  return new Future.value();
+}
+
+/**
+ * Test whether the `protoc` compiler is available on the user's path.
+ * Otherwise the compiler throws a rather unhelpful "No such file or directory"
+ * error when trying to run `protoc`
+ */
+Future _isProtocOnPath() => _isFileInPath("protoc");
+
+/**
+ * Test whether `dart` is available on the user's path.
+ * The plugin throws a rather unhelpful 'No such file or directory' error
+ * when trying to run `protoc`
+ */
+Future _isDartOnPath() => _isFileInPath("dart");
+
+Future _isFileInPath(String fname) {
+  var pathDirs = Platform.environment['PATH']
+      .split(':')
+      .map((path) => new Directory(path));
+  return reduceAsync(
+      pathDirs, false,
+      (bool found, dir) => _isFileInDir(dir, fname).then((inDir) => found || inDir)
+  );
+}
+
+Future<bool> _isFileInDir(Directory dir, String fname) {
+  return dir.exists().then((exists) {
+    if (exists) {
+      return dir.list().any((f) => f is File && f.path.endsWith(fname));
+    }
+    return false;
+  });
 }
 
 

@@ -3,9 +3,9 @@
 
 A helper library for compiling protobuffer templates in exitlive projects. 
 
-To run the builder, first set the environment variable`DART_PROTOC_PLUGIN` to the path of a compiled [dart protoc plugin][0] file.
+## Usage ##
 
-Next, add the git ref of the library to the `pubspec.yaml` to the development dependencies for the project
+Add the git ref of the library to the `pubspec.yaml` to the development dependencies for the project
 
     dev_dependencies:
       exitlive_protoc_plugin:
@@ -28,5 +28,3 @@ Finally, in the `build.dart` script for the project,
     void main(List<String> args) {
       builder(PROTO_ROOT, PROTO_OUT, MANIFEST_LIB, args);
     }
-    
-[0]: https://github.com/dart-lang/dart-protoc-plugin

@@ -10,7 +10,6 @@ const EXPORT_LIB = 'compiled';
 
 void main() {
   var outDir = new Directory(PROTOBUF_OUT);
-  print(Platform.environment['DART_PROTOC_PLUGIN']);
   outDir.exists().then((exists) {
     if (exists) {
       return outDir.delete(recursive: true);
