@@ -5,12 +5,17 @@ library proto_builder;
 
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert' show JSON;
 import 'package:quiver/async.dart';
 //import 'package:protobuf/protobuf.dart';
+
+import 'machine_message.dart';
 
 
 final Pattern _REMOVED_PATTERN = new RegExp(r'--removed=(.*)$');
 final Pattern _CHANGED_PATTERN = new RegExp(r'--changed=(.*)$');
+
+final _LIB_PATTERN = new RegExp(r'library\s+');
 
 /**
  * Compile protobuffers in the directory [:templateRoot:] to the directory [:protobufOut:].
@@ -32,13 +37,13 @@ Future build(String templateRoot, String protobufOut, String manifestLib, List<S
         .where((entry) => !entry.path.contains('/packages/'))
         .where((entry) => entry.path.endsWith('.proto'))
         .forEach((file){
-          buildArgs.changed.add(file);
+          if (buildArgs.full) buildArgs.changed.add(file);
           buildArgs.removed.add(file);
         });
   }
 
   return configureClean.then((_) {
-    _Builder builder = new _Builder(root, out, manifestLib, buildArgs.changed, buildArgs.removed);
+    _Builder builder = new _Builder(root, out, manifestLib, buildArgs);
     return builder.run();
   });
 }
@@ -52,9 +57,13 @@ class _Builder {
   final List<File> changed;
   final List<File> removed;
 
-  _Builder(this.root, this.out, this.exportLib, changed, removed):
-    this.changed = changed.toList(growable: false),
-    this.removed = removed.toList(growable: false);
+  final bool machineOut;
+  final List machineMessages = new List();
+
+  _Builder(this.root, this.out, this.exportLib, _BuildArgs buildArgs):
+    this.machineOut = buildArgs.machineOut,
+    this.changed = buildArgs.changed.toList(growable: false),
+    this.removed = buildArgs.removed.toList(growable: false);
 
   Future run() {
     print("Template root: ${root.path}");
@@ -64,9 +73,8 @@ class _Builder {
     // forEachAsync doesn't complete if iterable is empty
     return _forEachAsync(removed, delete)
         .then((_) => _forEachAsync(changed, compile))
-        .then((_) => _forEachAsync(changed, postCompile))
         .then((_) => writeExportFile())
-        .then((_) => print("Success"));
+        .then((_) => print("Protobuffers generated successfully"));
   }
 
   File compileFile(File template) =>
@@ -105,7 +113,7 @@ class _Builder {
     });
   }
 
-  Future compile(File template) {
+  Future<bool> compile(File template) {
     print("Compiling: ${template.path}");
 
     return _isProtocOnPath().then((onPath) {
@@ -127,26 +135,28 @@ class _Builder {
             template.path ]
           ).then((result) {
             if (result.exitCode != 0) {
-              throw new BuildError(result.stderr);
-              stdout.write(result.stdout);
+              if (!machineOut) throw new BuildError(result.stderr);
+              var msg = parseProtocError(result.stderr);
+              print("[${JSON.encode(parseProtocError(result.stderr))}]");
             }
+            return (result.exitCode == 0);
           });
-    });
-  }
-
-  final _LIB_PATTERN = new RegExp(r'library\s+');
-
-  Future postCompile(File template) {
-    var compiled = compileFile(template);
-    var out = outFile(template);
-    print("Post processing ${compiled.path}");
-    return compiled.readAsString()
+    }).then((compileSuccess) {
+      if (!compileSuccess) return new Future.value();
+      var compiled = compileFile(template);
+      var destFile = outFile(template);
+      return compiled.readAsString()
         .then((content) {
           content = content.replaceFirst(_LIB_PATTERN, 'library pb_');
-          return out.create(recursive: true)
-              .then((_) => out.writeAsString(content))
-              .then((_) => deleteFileAndParentIfEmpty(compiled));
+          return destFile.create(recursive: true)
+              .then((_) => destFile.writeAsString(content))
+              .then((_) => deleteFileAndParentIfEmpty(compiled))
+              .then((_) {
+                var mapping = new FileMapping(template, destFile);
+                print(machineOut ? "[${JSON.encode(mapping)}]" : mapping);
+              });
         });
+    });
   }
 
   Future writeExportFile() {
@@ -173,10 +183,20 @@ class _BuildArgs {
   final Set<File> removed = new Set<File>();
   final Set<File> changed = new Set<File>();
   bool clean = false;
+  bool full = false;
+
+  bool machineOut = false;
 }
 
 _BuildArgs _parseArgs(List<String> args) {
   var buildArgs = new _BuildArgs();
+
+  if (args.any((arg) => arg.startsWith('--machine')))
+    buildArgs.machineOut = true;
+
+  if (args.any((arg) => arg.startsWith('--full'))) {
+    return buildArgs ..clean = true ..full = true;
+  }
 
   if (args.any((arg) => arg.startsWith('--clean'))) {
     return buildArgs ..clean = true;
@@ -194,7 +214,6 @@ _BuildArgs _parseArgs(List<String> args) {
       continue;
     }
     if (arg.startsWith('--machine'))
-      //TODO: machine error reporting
       continue;
     throw new BuildError("Unrecognised argument in argument list: $arg");
   }
@@ -255,5 +274,5 @@ class BuildError extends Error {
 
   BuildError(this.message);
 
-  String toString() => "Could not build protobuf files: $message";
+  String toString() => "Could not build protobuf files:\n$message";
 }
