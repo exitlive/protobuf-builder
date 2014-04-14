@@ -12,8 +12,8 @@ import 'package:quiver/async.dart';
 import 'machine_message.dart';
 
 
-final Pattern _REMOVED_PATTERN = new RegExp(r'--removed=(.*)$');
-final Pattern _CHANGED_PATTERN = new RegExp(r'--changed=(.*)$');
+final Pattern _REMOVED_PATTERN = new RegExp(r'--removed=(.*\.proto)$');
+final Pattern _CHANGED_PATTERN = new RegExp(r'--changed=(.*\.proto)$');
 
 final _LIB_PATTERN = new RegExp(r'library\s+');
 
@@ -215,7 +215,6 @@ _BuildArgs _parseArgs(List<String> args) {
     }
     if (arg.startsWith('--machine'))
       continue;
-    throw new BuildError("Unrecognised argument in argument list: $arg");
   }
   return buildArgs;
 }
