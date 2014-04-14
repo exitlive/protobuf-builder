@@ -13,7 +13,7 @@ Add the git ref of the library to the `pubspec.yaml` to the development dependen
 
 Finally, in the `build.dart` script for the project, 
 
-    import 'package:exitlive_protobuf_builder/proto_builder.dart' as builder;
+    import 'package:exitlive_protobuf_builder/proto_builder.dart' as protobuf_builder;
     
     /// The directory which contains the protobuffer templates for the project
     /// Directories are specified relative to the root of the project
@@ -26,5 +26,5 @@ Finally, in the `build.dart` script for the project,
     const MANIFEST_LIB = 'messages';
     
     void main(List<String> args) {
-      builder(PROTO_ROOT, PROTO_OUT, MANIFEST_LIB, args);
+      protobuf_builder.build(PROTO_ROOT, PROTO_OUT, MANIFEST_LIB, args);
     }
