@@ -8,8 +8,8 @@ A helper library for compiling protobuffer templates in exitlive projects.
 Add the git ref of the library to the `pubspec.yaml` to the development dependencies for the project
 
     dev_dependencies:
-      exitlive_protoc_plugin:
-        git: git@github.com/exitlive/exitlive-protoc-plugin
+      exitlive_protobuf_builder:
+        git: git@github.com:exitlive/exitlive-protobuf-builder.git
 
 Finally, in the `build.dart` script for the project, 
 
