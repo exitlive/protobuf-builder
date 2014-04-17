@@ -73,7 +73,14 @@ class _Builder {
     // forEachAsync doesn't complete if iterable is empty
     return _forEachAsync(removed, delete)
         .then((_) => _forEachAsync(changed, compile))
-        .then((_) => writeExportFile())
+        .then((_) {
+          if (!removed.isEmpty || !changed.isEmpty) {
+            return writeExportFile();
+          }
+          else {
+            return true;
+          }
+        })
         .then((_) => print("Protobuffers generated successfully"));
   }
 
