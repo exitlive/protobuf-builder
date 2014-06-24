@@ -1,6 +1,8 @@
 name: protobuf_builder
+author: Thomas Stephenson
 version: 0.1.1
+homepage: https://github.com/exitlive/protobuf-builder
 description: Helper library for compiling protobuf messages
 dependencies:
-  protobuf: any
-  quiver: any
+  protobuf: ">=0.3.3 <0.4.0"
+  quiver: ">=0.18.2 <0.19.0"
