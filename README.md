@@ -1,7 +1,7 @@
-# exitlive-protobuf-builder #
+# protobuf-builder #
 
 
-A helper library for compiling protobuffer templates in exitlive projects. 
+A helper library for compiling protobuffer templates. 
 
 ## Usage ##
 
@@ -9,14 +9,13 @@ Add the git ref of the library to the `pubspec.yaml` to the development dependen
 
 ```yaml
 dev_dependencies:
-  exitlive_protobuf_builder:
-    git: git@github.com:exitlive/exitlive-protobuf-builder.git
+  protobuf_builder: any
 ```
 
 Finally, in the `build.dart` script for the project, 
 
 ```dart
-import 'package:exitlive_protobuf_builder/proto_builder.dart' as protobuf_builder;
+import 'package:protobuf_builder/proto_builder.dart' as protobuf_builder;
 
 /// The directory which contains the protobuffer templates for the project
 /// Directories are specified relative to the root of the project
