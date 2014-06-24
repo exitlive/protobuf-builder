@@ -1,5 +1,5 @@
 name: protobuf_builder
-author: Thomas Stephenson
+author: Thomas Stephenson <ovangle@gmail.com>
 version: 0.1.1
 homepage: https://github.com/exitlive/protobuf-builder
 description: Helper library for compiling protobuf messages
