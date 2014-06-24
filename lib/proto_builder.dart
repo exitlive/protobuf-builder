@@ -230,7 +230,7 @@ _BuildArgs _parseArgs(List<String> args) {
 /**
  * The dart protoc plugin
  */
-final File _dartProtocPlugin = new File("packages/exitlive_protobuf_builder/protoc-dart-plugin");
+final File _dartProtocPlugin = new File("packages/protobuf_builder/protoc-dart-plugin");
 
 // quiver.async bug #125
 // forEachAsync doesn't complete if iterable is empty
