@@ -1,6 +1,6 @@
-name: exitlive_protobuf_builder
+name: protobuf_builder
 version: 0.1.1
-description: Helper library for compiling protobuf messages in exitlive projects
+description: Helper library for compiling protobuf messages
 dependencies:
   protobuf: any
   quiver: any
